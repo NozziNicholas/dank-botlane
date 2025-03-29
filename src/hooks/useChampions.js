@@ -52,6 +52,9 @@ export const useChampions = () => {
       id: carryData.id,
       skillOrder: selectedCombo.carry.skillOrder,
       spellImgs: carryData.spells.map((spell) => spell.image.full),
+      startingItem: selectedCombo.carry.startingItem,
+      items: selectedCombo.carry.items,
+      runes: selectedCombo.carry.runes,
     });
 
     setSupport({
@@ -60,6 +63,9 @@ export const useChampions = () => {
       id: supportData.id,
       skillOrder: selectedCombo.support.skillOrder,
       spellImgs: supportData.spells.map((spell) => spell.image.full),
+      startingItem: selectedCombo.support.startingItem,
+      items: selectedCombo.support.items,
+      runes: selectedCombo.support.runes,
     });
   };
 
