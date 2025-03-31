@@ -29,44 +29,103 @@ export const useChampions = () => {
     }
   }, [patch]);
 
-  const fetchChampionData = async (
-    carryChampion,
-    supportChampion,
-    selectedCombo
-  ) => {
-    const [carryRes, supportRes] = await Promise.all([
-      axios.get(
-        `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/champion/${carryChampion}.json`
-      ),
-      axios.get(
-        `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/champion/${supportChampion}.json`
-      ),
-    ]);
+  const fetchChampionData = async () => {
+    try {
+      // Fetch random combo from API
+      const comboRes = await axios.get("/api/getRandomCombo");
+      const data = comboRes.data;
 
-    const carryData = Object.values(carryRes.data.data)[0];
-    const supportData = Object.values(supportRes.data.data)[0];
+      // Fetch champion data from Riot API
+      const [carryRes, supportRes] = await Promise.all([
+        axios.get(
+          `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/champion/${data.combo.carry_id}.json`
+        ),
+        axios.get(
+          `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/champion/${data.combo.support_id}.json`
+        ),
+      ]);
 
-    setCarry({
-      name: carryData.name,
-      key: carryData.key,
-      id: carryData.id,
-      skillOrder: selectedCombo.carry.skillOrder,
-      spellImgs: carryData.spells.map((spell) => spell.image.full),
-      startingItem: selectedCombo.carry.startingItem,
-      items: selectedCombo.carry.items,
-      runes: selectedCombo.carry.runes,
-    });
+      const carryData = Object.values(carryRes.data.data)[0];
+      const supportData = Object.values(supportRes.data.data)[0];
 
-    setSupport({
-      name: supportData.name,
-      key: supportData.key,
-      id: supportData.id,
-      skillOrder: selectedCombo.support.skillOrder,
-      spellImgs: supportData.spells.map((spell) => spell.image.full),
-      startingItem: selectedCombo.support.startingItem,
-      items: selectedCombo.support.items,
-      runes: selectedCombo.support.runes,
-    });
+      // Transform carry data
+      const carryBuild = data.build.find(
+        (b) => b.champion_id === parseInt(carryData.key)
+      );
+      const carryItems = data.inventoryCarry.items;
+      const carryRunes = data.runePageCarry;
+
+      setCarry({
+        name: carryData.name,
+        key: carryData.key,
+        id: carryData.id,
+        skillOrder: carryBuild.skill_order.split(","),
+        spellImgs: carryData.spells.map((spell) => spell.image.full),
+        startingItem: carryItems.starter[0],
+        items: [
+          carryItems.item1.best,
+          carryItems.item2.best,
+          carryItems.item3.best,
+          carryItems.item4.best,
+          carryItems.item5.best,
+        ],
+        boots: carryItems.boots[0],
+        runes: {
+          primary: [
+            carryRunes.primary_rune.keystone,
+            carryRunes.primary_rune.first,
+            carryRunes.primary_rune.second,
+            carryRunes.primary_rune.third,
+          ],
+          secondary: [
+            carryRunes.secondary_rune.first,
+            carryRunes.secondary_rune.second,
+          ],
+        },
+        summonerD: carryBuild.summoner_d,
+        summonerF: carryBuild.summoner_f,
+      });
+
+      // Transform support data
+      const supportBuild = data.build.find(
+        (b) => b.champion_id === parseInt(supportData.key)
+      );
+      const supportItems = data.inventorySupport.items;
+      const supportRunes = data.runePageSupport;
+
+      setSupport({
+        name: supportData.name,
+        key: supportData.key,
+        id: supportData.id,
+        skillOrder: supportBuild.skill_order.split(","),
+        spellImgs: supportData.spells.map((spell) => spell.image.full),
+        startingItem: supportItems.starter[0],
+        items: [
+          supportItems.item1.best,
+          supportItems.item2.best,
+          supportItems.item3.best,
+          supportItems.item4.best,
+          supportItems.item5.best,
+        ],
+        boots: supportItems.boots[0],
+        runes: {
+          primary: [
+            supportRunes.primary_rune.keystone,
+            supportRunes.primary_rune.first,
+            supportRunes.primary_rune.second,
+            supportRunes.primary_rune.third,
+          ],
+          secondary: [
+            supportRunes.secondary_rune.first,
+            supportRunes.secondary_rune.second,
+          ],
+        },
+        summonerD: supportBuild.summoner_d,
+        summonerF: supportBuild.summoner_f,
+      });
+    } catch (error) {
+      console.error("Error fetching champion data:", error);
+    }
   };
 
   return {

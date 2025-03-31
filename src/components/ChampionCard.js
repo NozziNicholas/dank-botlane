@@ -3,7 +3,11 @@ import Image from "next/image";
 import { useImageCache } from "@/hooks/useImageCache";
 import { useState, useEffect } from "react";
 
-export const ChampionCard = ({ champion, patch }) => {
+// Transparent 1x1 pixel GIF base64
+const TRANSPARENT_PLACEHOLDER =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+export const ChampionCard = ({ champion, patch, runeData, itemData }) => {
   const { getImage } = useImageCache();
   const [imageUrls, setImageUrls] = useState({
     champion: null,
@@ -14,187 +18,370 @@ export const ChampionCard = ({ champion, patch }) => {
       primary: [],
       secondary: [],
     },
+    summoners: {
+      d: null,
+      f: null,
+    },
   });
 
   useEffect(() => {
     const loadImages = async () => {
-      // Load champion image
-      const championUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.id}_0.jpg`;
-      const championImageUrl = await getImage(championUrl);
+      if (!champion || !patch) return;
 
-      // Load spell images
-      const spellUrls = champion.skillOrder.map((skill) => {
-        const skillIndex = { Q: 0, W: 1, E: 2, R: 3 }[skill];
-        return `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.spellImgs[skillIndex]}`;
-      });
-      const spellImageUrls = await Promise.all(
-        spellUrls.map((url) => getImage(url))
-      );
+      try {
+        // Create all the URLs first
+        const championImageUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.id}_0.jpg`;
+        const spellImageUrls = champion.spellImgs.map(
+          (spell) =>
+            `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${spell}`
+        );
+        const startingItemUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.startingItem}.png`;
+        const itemImageUrls = champion.items.map(
+          (item) =>
+            `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${item}.png`
+        );
+        const bootsImageUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.boots}.png`;
 
-      // Load starting item image
-      const startingItemUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.startingItem}.png`;
-      const startingItemImageUrl = await getImage(startingItemUrl);
+        const primaryRuneUrls = champion.runes.primary.map((rune) => {
+          const runeIcon = findRuneById(rune, runeData)?.icon;
+          return runeIcon
+            ? `https://ddragon.leagueoflegends.com/cdn/img/${runeIcon}`
+            : "";
+        });
 
-      // Load core items images
-      const itemUrls = champion.items.map(
-        (item) =>
-          `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${item}.png`
-      );
-      const itemImageUrls = await Promise.all(
-        itemUrls.map((url) => getImage(url))
-      );
+        const secondaryRuneUrls = champion.runes.secondary.map((rune) => {
+          const runeIcon = findRuneById(rune, runeData)?.icon;
+          return runeIcon
+            ? `https://ddragon.leagueoflegends.com/cdn/img/${runeIcon}`
+            : "";
+        });
 
-      // Load rune images
-      const primaryRuneUrls = champion.runes.primary.map(
-        (rune) =>
-          `https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png`
-      );
-      const secondaryRuneUrls = champion.runes.secondary.map(
-        (rune) =>
-          `https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/Electrocute/Electrocute.png`
-      );
-      const primaryRuneImageUrls = await Promise.all(
-        primaryRuneUrls.map((url) => getImage(url))
-      );
-      const secondaryRuneImageUrls = await Promise.all(
-        secondaryRuneUrls.map((url) => getImage(url))
-      );
+        const summonerDUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.summonerD}.png`;
+        const summonerFUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.summonerF}.png`;
 
-      setImageUrls({
-        champion: championImageUrl,
-        spells: spellImageUrls,
-        startingItem: startingItemImageUrl,
-        items: itemImageUrls,
-        runes: {
-          primary: primaryRuneImageUrls,
-          secondary: secondaryRuneImageUrls,
-        },
-      });
+        // Get cached URLs using getImage
+        const championImage = await getImage(championImageUrl);
+        const spellImages = await Promise.all(
+          spellImageUrls.map((url) => getImage(url))
+        );
+        const startingItemImage = await getImage(startingItemUrl);
+        const itemImages = await Promise.all(
+          itemImageUrls.map((url) => getImage(url))
+        );
+        const bootsImage = await getImage(bootsImageUrl);
+        const primaryRuneImages = await Promise.all(
+          primaryRuneUrls.filter((url) => url).map((url) => getImage(url))
+        );
+        const secondaryRuneImages = await Promise.all(
+          secondaryRuneUrls.filter((url) => url).map((url) => getImage(url))
+        );
+        const summonerDImage = await getImage(summonerDUrl);
+        const summonerFImage = await getImage(summonerFUrl);
+
+        // Map the cached URLs to the state structure
+        setImageUrls({
+          champion: championImage,
+          spells: spellImages,
+          startingItem: startingItemImage,
+          items: [...itemImages, bootsImage],
+          runes: {
+            primary: primaryRuneImages,
+            secondary: secondaryRuneImages,
+          },
+          summoners: {
+            d: summonerDImage,
+            f: summonerFImage,
+          },
+        });
+      } catch (error) {
+        console.error("Error loading images:", error);
+      }
     };
 
     loadImages();
-  }, [champion, patch, getImage]);
+  }, [champion?.id, patch, runeData, getImage]);
+
+  // Helper function to find rune by ID
+  const findRuneById = (runeId, runeData) => {
+    if (!runeData) return null;
+    for (const style of runeData) {
+      for (const slot of style.slots) {
+        for (const rune of slot.runes) {
+          if (rune.id === runeId) return rune;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Helper function to find item by ID
+  const findItemById = (itemId, itemData) => {
+    if (!itemData) return null;
+    return itemData.data[itemId];
+  };
+
+  // Helper function to map skill letter from index
+  const getSkillLetter = (index) => {
+    return { 0: "Q", 1: "W", 2: "E", 3: "R" }[index] || "";
+  };
 
   return (
-    <Card className="w-2/5 mx-auto h-full bg-dank-secondary border border-dank-primary">
-      <CardHeader>
-        <CardTitle className="text-center">{champion.name}</CardTitle>
+    <Card className="w-full md:w-2/5 h-4/5 bg-lol-card-bg border border-lol-card-border shadow-lg mx-auto">
+      <CardHeader className="pb-0 pt-2">
+        <CardTitle className="text-center text-xl text-white">
+          {champion.name}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {/* Champion Image */}
-        <div className="flex justify-center">
-          <Image
-            src={
-              imageUrls.champion ||
-              `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.id}_0.jpg`
-            }
-            alt={champion.name}
-            width={150}
-            height={50}
-            className="rounded-lg"
-          />
-        </div>
-
-        {/* Skill Order */}
-        <div className="flex flex-col gap-1">
-          <h3 className="text-center font-semibold text-sm">Skill Order</h3>
-          <div className="flex flex-row gap-2 justify-center items-center">
-            {champion.skillOrder.map((skill, index) => (
-              <div key={skill} className="flex flex-col items-center">
-                <Image
-                  src={
-                    imageUrls.spells[index] ||
-                    `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${
-                      champion.spellImgs[{ Q: 0, W: 1, E: 2, R: 3 }[skill]]
-                    }`
-                  }
-                  alt={champion.name}
-                  width={40}
-                  height={40}
-                />
-                <p className="text-sm">{skill}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Starting Item */}
-        <div className="flex flex-col gap-1">
-          <h3 className="text-center font-semibold text-sm">Starting Item</h3>
-          <div className="flex justify-center">
+      <CardContent className="p-5">
+        {/* Champion Image Row */}
+        <div className="flex gap-4 mb-4">
+          <div className="w-36 h-auto">
             <Image
-              src={
-                imageUrls.startingItem ||
-                `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.startingItem}.png`
-              }
-              alt="Starting Item"
-              width={40}
-              height={40}
+              src={imageUrls.champion || TRANSPARENT_PLACEHOLDER}
+              alt={champion.name}
+              width={150}
+              height={45}
+              className="rounded-sm shadow-md"
+              loading="lazy"
+              unoptimized
+              onError={(e) => {
+                e.target.style.display = "none";
+                e.target.parentNode.classList.add(
+                  "bg-lol-item-bg",
+                  "rounded-sm",
+                  "w-[150px]",
+                  "h-[45px]"
+                );
+              }}
             />
           </div>
-        </div>
 
-        {/* Core Items */}
-        <div className="flex flex-col gap-1">
-          <h3 className="text-center font-semibold text-sm">Core Items</h3>
-          <div className="grid grid-cols-3 gap-2 justify-items-center">
-            {champion.items.map((item, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <Image
-                  src={
-                    imageUrls.items[index] ||
-                    `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${item}.png`
-                  }
-                  alt={`Item ${index + 1}`}
-                  width={40}
-                  height={40}
-                />
+          {/* Main content aside champion image */}
+          <div className="flex-1 flex flex-col gap-3">
+            {/* Summoners */}
+            <div className="mb-2">
+              <div className="text-sm text-white mb-2">Summoners</div>
+              <div className="flex gap-2">
+                <div className="w-8 h-8">
+                  <Image
+                    src={imageUrls.summoners.d || TRANSPARENT_PLACEHOLDER}
+                    alt="Summoner D"
+                    width={32}
+                    height={32}
+                    className="rounded-sm"
+                    loading="lazy"
+                    unoptimized
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.parentNode.classList.add(
+                        "bg-lol-item-bg",
+                        "rounded-sm"
+                      );
+                    }}
+                  />
+                </div>
+                <div className="w-8 h-8">
+                  <Image
+                    src={imageUrls.summoners.f || TRANSPARENT_PLACEHOLDER}
+                    alt="Summoner F"
+                    width={32}
+                    height={32}
+                    className="rounded-sm"
+                    loading="lazy"
+                    unoptimized
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.parentNode.classList.add(
+                        "bg-lol-item-bg",
+                        "rounded-sm"
+                      );
+                    }}
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Runes */}
-        <div className="flex flex-col gap-1">
-          <h3 className="text-center font-semibold text-sm">Runes</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {/* Primary Runes */}
-            <div className="flex flex-col gap-1">
-              <h4 className="text-center text-xs font-medium">Primary</h4>
-              <div className="flex flex-row gap-1 justify-center">
-                {champion.runes.primary.map((rune, index) => (
-                  <div key={index} className="flex items-center">
+            {/* Skill Order */}
+            <div>
+              <div className="text-sm text-white mb-2">Skill Order</div>
+              <div className="flex gap-1 flex-wrap mb-1">
+                {champion.skillOrder.map((skill, index) => (
+                  <div key={index} className="w-8 h-8 relative">
                     <Image
                       src={
-                        imageUrls.runes.primary[index] ||
-                        `https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png`
+                        (imageUrls.spells &&
+                          imageUrls.spells[
+                            { Q: 0, W: 1, E: 2, R: 3 }[skill]
+                          ]) ||
+                        TRANSPARENT_PLACEHOLDER
                       }
-                      alt={`Primary Rune ${index + 1}`}
-                      width={24}
-                      height={24}
+                      alt={skill}
+                      width={32}
+                      height={32}
+                      className="rounded-sm"
+                      loading="lazy"
+                      unoptimized
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        const parent = e.target.parentNode;
+                        parent.classList.add(
+                          "bg-lol-item-bg",
+                          "rounded-sm",
+                          "flex",
+                          "items-center",
+                          "justify-center"
+                        );
+                      }}
                     />
                   </div>
                 ))}
               </div>
             </div>
-            {/* Secondary Runes */}
-            <div className="flex flex-col gap-1">
-              <h4 className="text-center text-xs font-medium">Secondary</h4>
-              <div className="flex flex-row gap-1 justify-center">
-                {champion.runes.secondary.map((rune, index) => (
-                  <div key={index} className="flex items-center">
+          </div>
+        </div>
+
+        {/* Runes Section */}
+        <div className="mb-4">
+          <div className="text-sm text-white mb-2 border-b border-lol-item-border pb-1">
+            Runes
+          </div>
+          <div className="flex gap-6 mt-2">
+            {/* Primary Runes */}
+            <div>
+              <div className="text-sm text-white opacity-75 mb-2">Primary</div>
+              <div className="flex gap-2">
+                {champion.runes.primary.map((rune, index) => (
+                  <div key={index} className="w-[34px] h-[34px]">
                     <Image
                       src={
-                        imageUrls.runes.secondary[index] ||
-                        `https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/Electrocute/Electrocute.png`
+                        imageUrls.runes?.primary?.[index] ||
+                        TRANSPARENT_PLACEHOLDER
                       }
-                      alt={`Secondary Rune ${index + 1}`}
-                      width={24}
-                      height={24}
+                      alt={`Primary Rune ${index + 1}`}
+                      width={34}
+                      height={34}
+                      className="rounded-sm"
+                      loading="lazy"
+                      unoptimized
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.parentNode.classList.add(
+                          "bg-lol-item-bg",
+                          "rounded-sm"
+                        );
+                      }}
                     />
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Secondary Runes */}
+            <div>
+              <div className="text-sm text-white opacity-75 mb-2">
+                Secondary
+              </div>
+              <div className="flex gap-2">
+                {champion.runes.secondary.map((rune, index) => (
+                  <div key={index} className="w-[34px] h-[34px]">
+                    <Image
+                      src={
+                        imageUrls.runes?.secondary?.[index] ||
+                        TRANSPARENT_PLACEHOLDER
+                      }
+                      alt={`Secondary Rune ${index + 1}`}
+                      width={34}
+                      height={34}
+                      className="rounded-sm"
+                      loading="lazy"
+                      unoptimized
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.parentNode.classList.add(
+                          "bg-lol-item-bg",
+                          "rounded-sm"
+                        );
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Items Section */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Starting Item */}
+          <div>
+            <div className="text-sm text-white opacity-75 mb-2">Starting</div>
+            <div className="w-[34px] h-[34px]">
+              <Image
+                src={imageUrls.startingItem || TRANSPARENT_PLACEHOLDER}
+                alt="Starting Item"
+                width={34}
+                height={34}
+                className="rounded-sm"
+                loading="lazy"
+                unoptimized
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentNode.classList.add(
+                    "bg-lol-item-bg",
+                    "rounded-sm"
+                  );
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Core Items */}
+          <div>
+            <div className="text-sm text-white opacity-75 mb-2">Core</div>
+            <div className="flex gap-2">
+              {champion.items.map((item, index) => (
+                <div key={index} className="w-[34px] h-[34px]">
+                  <Image
+                    src={imageUrls.items?.[index] || TRANSPARENT_PLACEHOLDER}
+                    alt={`Item ${index + 1}`}
+                    width={34}
+                    height={34}
+                    className="rounded-sm"
+                    loading="lazy"
+                    unoptimized
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.parentNode.classList.add(
+                        "bg-lol-item-bg",
+                        "rounded-sm"
+                      );
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Boots */}
+          <div>
+            <div className="text-sm text-white opacity-75 mb-2">Boots</div>
+            <div className="w-[34px] h-[34px]">
+              <Image
+                src={imageUrls.items?.[5] || TRANSPARENT_PLACEHOLDER}
+                alt="Boots"
+                width={34}
+                height={34}
+                className="rounded-sm"
+                loading="lazy"
+                unoptimized
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentNode.classList.add(
+                    "bg-lol-item-bg",
+                    "rounded-sm"
+                  );
+                }}
+              />
             </div>
           </div>
         </div>
