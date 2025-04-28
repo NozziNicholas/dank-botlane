@@ -41,13 +41,13 @@
   --dank-details: #EB5E28;
   --dank-buttons: #CCC5B9;
   
-  /* League of Legends card theme */
-  --lol-card-bg: #1a1c21;
-  --lol-card-border: #17313a;
-  --lol-text-primary: #e6dcc1;
-  --lol-item-bg: #17313a;
-  --lol-item-border-light: rgba(23, 49, 58, 0.5);
-  --lol-item-border: rgba(23, 49, 58, 0.3);
+  /* League of Legends card theme - light mode */
+  --lol-card-bg: #f5f5f5;
+  --lol-card-border: #e0e0e0;
+  --lol-text-primary: #333333;
+  --lol-item-bg: #e0e0e0;
+  --lol-item-border-light: rgba(224, 224, 224, 0.5);
+  --lol-item-border: rgba(224, 224, 224, 0.3);
 }
 
 @theme dank {
@@ -102,13 +102,6 @@
   --dank-buttons: var(--dank-buttons);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--lol-text-primary);
@@ -152,7 +145,7 @@ body {
   --dank-details: #EB5E28;
   --dank-buttons: #CCC5B9;
   
-  /* League of Legends card theme - dark mode adjustments if needed */
+  /* League of Legends card theme - dark mode */
   --lol-card-bg: #1a1c21;
   --lol-card-border: #17313a;
   --lol-text-primary: #e6dcc1;

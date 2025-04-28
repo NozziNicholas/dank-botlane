@@ -1,16 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useImageCache } from "@/hooks/useImageCache";
+import { useImage, useImages } from "@/hooks/useImage";
 import { useState, useEffect } from "react";
 import { ChampionHeader } from "./ChampionHeader";
 import { RunesSection } from "./RunesSection";
 import { ItemsSection } from "./ItemsSection";
 
-// Transparent 1x1 pixel GIF base64
-const TRANSPARENT_PLACEHOLDER =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-
 export const ChampionCard = ({ champion, patch, runeData, itemData }) => {
-  const { getImage } = useImageCache();
+  // State to store all image URLs
   const [imageUrls, setImageUrls] = useState({
     champion: null,
     spells: [],
@@ -26,83 +22,6 @@ export const ChampionCard = ({ champion, patch, runeData, itemData }) => {
     },
   });
 
-  useEffect(() => {
-    const loadImages = async () => {
-      if (!champion || !patch) return;
-
-      try {
-        // Create all the URLs first
-        const championImageUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.id}_0.jpg`;
-        const spellImageUrls = champion.spellImgs.map(
-          (spell) =>
-            `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${spell}`
-        );
-        const startingItemUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.startingItem}.png`;
-        const itemImageUrls = champion.items.map(
-          (item) =>
-            `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${item}.png`
-        );
-        const bootsImageUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.boots}.png`;
-
-        const primaryRuneUrls = champion.runes.primary.map((rune) => {
-          const runeIcon = findRuneById(rune, runeData)?.icon;
-          return runeIcon
-            ? `https://ddragon.leagueoflegends.com/cdn/img/${runeIcon}`
-            : "";
-        });
-
-        const secondaryRuneUrls = champion.runes.secondary.map((rune) => {
-          const runeIcon = findRuneById(rune, runeData)?.icon;
-          return runeIcon
-            ? `https://ddragon.leagueoflegends.com/cdn/img/${runeIcon}`
-            : "";
-        });
-
-        const summonerDUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.summonerD}.png`;
-        const summonerFUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.summonerF}.png`;
-
-        // Get cached URLs using getImage
-        const championImage = await getImage(championImageUrl);
-        const spellImages = await Promise.all(
-          spellImageUrls.map((url) => getImage(url))
-        );
-        const startingItemImage = await getImage(startingItemUrl);
-        const itemImages = await Promise.all(
-          itemImageUrls.map((url) => getImage(url))
-        );
-        const bootsImage = await getImage(bootsImageUrl);
-        const primaryRuneImages = await Promise.all(
-          primaryRuneUrls.filter((url) => url).map((url) => getImage(url))
-        );
-        const secondaryRuneImages = await Promise.all(
-          secondaryRuneUrls.filter((url) => url).map((url) => getImage(url))
-        );
-        const summonerDImage = await getImage(summonerDUrl);
-        const summonerFImage = await getImage(summonerFUrl);
-
-        // Map the cached URLs to the state structure
-        setImageUrls({
-          champion: championImage,
-          spells: spellImages,
-          startingItem: startingItemImage,
-          items: [...itemImages, bootsImage],
-          runes: {
-            primary: primaryRuneImages,
-            secondary: secondaryRuneImages,
-          },
-          summoners: {
-            d: summonerDImage,
-            f: summonerFImage,
-          },
-        });
-      } catch (error) {
-        console.error("Error loading images:", error);
-      }
-    };
-
-    loadImages();
-  }, [champion?.id, patch, runeData, getImage]);
-
   // Helper function to find rune by ID
   const findRuneById = (runeId, runeData) => {
     if (!runeData) return null;
@@ -116,16 +35,117 @@ export const ChampionCard = ({ champion, patch, runeData, itemData }) => {
     return null;
   };
 
-  // Helper function to find item by ID
-  const findItemById = (itemId, itemData) => {
-    if (!itemData) return null;
-    return itemData.data[itemId];
+  // Generate URLs for all images
+  const generateImageUrls = () => {
+    if (!champion || !patch) return {};
+
+    // Champion image URL
+    const championImageUrl = `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.id}_0.jpg`;
+
+    // Spell image URLs
+    const spellImageUrls = champion.spellImgs.map(
+      (spell) =>
+        `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${spell}`
+    );
+
+    // Item image URLs
+    const startingItemUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.startingItem}.png`;
+    const itemImageUrls = champion.items.map(
+      (item) =>
+        `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${item}.png`
+    );
+    const bootsImageUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${champion.boots}.png`;
+
+    // Rune image URLs
+    const primaryRuneUrls = champion.runes.primary
+      .map((rune) => {
+        const runeIcon = findRuneById(rune, runeData)?.icon;
+        return runeIcon
+          ? `https://ddragon.leagueoflegends.com/cdn/img/${runeIcon}`
+          : "";
+      })
+      .filter(Boolean);
+
+    const secondaryRuneUrls = champion.runes.secondary
+      .map((rune) => {
+        const runeIcon = findRuneById(rune, runeData)?.icon;
+        return runeIcon
+          ? `https://ddragon.leagueoflegends.com/cdn/img/${runeIcon}`
+          : "";
+      })
+      .filter(Boolean);
+
+    // Summoner spell URLs
+    const summonerDUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.summonerD}.png`;
+    const summonerFUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${champion.summonerF}.png`;
+
+    return {
+      championImageUrl,
+      spellImageUrls,
+      startingItemUrl,
+      itemImageUrls,
+      bootsImageUrl,
+      primaryRuneUrls,
+      secondaryRuneUrls,
+      summonerDUrl,
+      summonerFUrl,
+    };
   };
 
-  // Helper function to map skill letter from index
-  const getSkillLetter = (index) => {
-    return { 0: "Q", 1: "W", 2: "E", 3: "R" }[index] || "";
-  };
+  // Get all image URLs
+  const {
+    championImageUrl,
+    spellImageUrls,
+    startingItemUrl,
+    itemImageUrls,
+    bootsImageUrl,
+    primaryRuneUrls,
+    secondaryRuneUrls,
+    summonerDUrl,
+    summonerFUrl,
+  } = generateImageUrls();
+
+  // Use SWR hooks for images
+  const { imageUrl: championImage } = useImage(championImageUrl);
+  const { imageUrls: spellImages } = useImages(spellImageUrls);
+  const { imageUrl: startingItemImage } = useImage(startingItemUrl);
+  const { imageUrls: itemImages } = useImages(itemImageUrls);
+  const { imageUrl: bootsImage } = useImage(bootsImageUrl);
+  const { imageUrls: primaryRuneImages } = useImages(primaryRuneUrls);
+  const { imageUrls: secondaryRuneImages } = useImages(secondaryRuneUrls);
+  const { imageUrl: summonerDImage } = useImage(summonerDUrl);
+  const { imageUrl: summonerFImage } = useImage(summonerFUrl);
+
+  // Update imageUrls state when any image URL changes
+  useEffect(() => {
+    setImageUrls({
+      champion: championImage,
+      spells: spellImages,
+      startingItem: startingItemImage,
+      items: [...itemImages, bootsImage],
+      runes: {
+        primary: primaryRuneImages,
+        secondary: secondaryRuneImages,
+      },
+      summoners: {
+        d: summonerDImage,
+        f: summonerFImage,
+      },
+    });
+  }, [
+    championImage,
+    spellImages,
+    startingItemImage,
+    itemImages,
+    bootsImage,
+    primaryRuneImages,
+    secondaryRuneImages,
+    summonerDImage,
+    summonerFImage,
+  ]);
+
+  // If no champion data is provided, don't render anything
+  if (!champion) return null;
 
   return (
     <Card className="w-full md:w-2/5 h-4/5 bg-lol-card-bg border border-lol-card-border shadow-lg mx-auto">
