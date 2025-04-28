@@ -283,6 +283,7 @@ export default function Admin() {
             item3: { best: newItems.carry?.core[2]?.id || null, alt: [] },
             item4: { best: newItems.carry?.core[3]?.id || null, alt: [] },
             item5: { best: newItems.carry?.core[4]?.id || null, alt: [] },
+            item6: { best: newItems.carry?.noBoots?.id || null, alt: [] },
           },
         },
         inventorySupport: {
@@ -293,11 +294,15 @@ export default function Admin() {
             boots: newItems.support?.boots?.id
               ? [newItems.support.boots.id]
               : [],
+            noBoots: newItems.support?.noBoots?.id
+              ? [newItems.support.noBoots.id]
+              : [],
             item1: { best: newItems.support?.core[0]?.id || null, alt: [] },
             item2: { best: newItems.support?.core[1]?.id || null, alt: [] },
             item3: { best: newItems.support?.core[2]?.id || null, alt: [] },
             item4: { best: newItems.support?.core[3]?.id || null, alt: [] },
             item5: { best: newItems.support?.core[4]?.id || null, alt: [] },
+            item6: { best: newItems.support?.noBoots?.id || null, alt: [] },
           },
         },
         runePageCarry: selectedRunes.carry,
@@ -410,6 +415,7 @@ export default function Admin() {
             item3: { best: selectedItems.carry.core[2]?.id || null, alt: [] },
             item4: { best: selectedItems.carry.core[3]?.id || null, alt: [] },
             item5: { best: selectedItems.carry.core[4]?.id || null, alt: [] },
+            item6: { best: selectedItems.carry.noBoots?.id || null, alt: [] },
           },
         },
         inventorySupport: {
@@ -425,6 +431,7 @@ export default function Admin() {
             item3: { best: selectedItems.support.core[2]?.id || null, alt: [] },
             item4: { best: selectedItems.support.core[3]?.id || null, alt: [] },
             item5: { best: selectedItems.support.core[4]?.id || null, alt: [] },
+            item6: { best: selectedItems.support.noBoots?.id || null, alt: [] },
           },
         },
         runePageCarry: selectedRunes.carry,
@@ -723,9 +730,13 @@ export default function Admin() {
                         {selectedItems.carry.starter && (
                           <p>Starter: {selectedItems.carry.starter.name}</p>
                         )}
-                        {selectedItems.carry.boots && (
+                        {selectedItems.carry.boots ? (
                           <p>Boots: {selectedItems.carry.boots.name}</p>
-                        )}
+                        ) : selectedItems.carry.noBoots ? (
+                          <p>
+                            Alternative Item: {selectedItems.carry.noBoots.name}
+                          </p>
+                        ) : null}
                         <div className="flex flex-wrap gap-2">
                           {selectedItems.carry.core.map(
                             (item, index) =>

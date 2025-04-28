@@ -53,6 +53,7 @@ export function ItemSelector({
   label = "Select item...",
   disabledItems = [], // Array of item IDs that are already selected
   slotType = "core", // "core", "starter", or "boots"
+  disabled = false, // Whether the selector is disabled
 }) {
   const [open, setOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -60,33 +61,47 @@ export function ItemSelector({
 
   // Filter out items based on slot type
   const filteredItemsByType = items
-    ? Object.values(items).filter((item) => {
-        // First filter for Map 11 (Summoner's Rift) items and purchasable items
-        if (!item.maps || !item.maps["11"] || !item.gold.purchasable) {
-          return false;
-        }
+    ? Object.entries(items)
+        .filter(([itemKey, item]) => {
+          // First filter for Map 11 (Summoner's Rift) items and purchasable items
+          if (!item.maps || !item.maps["11"] || !item.gold.purchasable) {
+            return false;
+          }
 
-        if (slotType === "starter") {
-          // Starting items are typically consumables or items with low cost
-          return (
-            !item.tags.includes("Consumable") &&
-            !item.tags.includes("Trinket") &&
-            !item.tags.includes("Jungle") &&
-            item.gold.base !== 0 &&
-            item.gold.total <= 500
-          );
-        } else if (slotType === "boots") {
-          return item.tags.includes("Boots");
-        } else {
-          // For core items, exclude consumables, gold items, and boots
-          return (
-            !item.tags.includes("Consumable") &&
-            !item.tags.includes("GoldPer") &&
-            !item.tags.includes("Boots") &&
-            !item.tags.includes("Jungle")
-          );
-        }
-      })
+          // Exclude item with key 323070
+          if (itemKey === "323070") {
+            return false;
+          }
+
+          if (slotType === "starter") {
+            // Starting items are typically consumables or items with low cost
+            return (
+              !item.tags.includes("Consumable") &&
+              !item.tags.includes("Trinket") &&
+              !item.tags.includes("Jungle") &&
+              item.gold.base !== 0 &&
+              item.gold.total <= 500
+            );
+          } else if (slotType === "boots") {
+            return (
+              item.tags.includes("Boots") &&
+              item.into &&
+              item.into.length > 0 &&
+              item.gold.total > 500
+            );
+          } else {
+            // For core items, exclude consumables, gold items, and boots
+            return (
+              !item.tags.includes("Consumable") &&
+              !item.tags.includes("GoldPer") &&
+              !item.tags.includes("Boots") &&
+              !item.tags.includes("Jungle") &&
+              item.gold.total > 500 &&
+              (!item.into || item.into.length === 0)
+            );
+          }
+        })
+        .map(([_, item]) => item)
     : [];
 
   // Filter items based on search query
@@ -127,6 +142,7 @@ export function ItemSelector({
           role="combobox"
           aria-expanded={open}
           className="w-[300px] justify-between relative"
+          disabled={disabled}
         >
           {selectedItem ? (
             <>
