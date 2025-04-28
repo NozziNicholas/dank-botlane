@@ -7,7 +7,6 @@ export const useChampionAbilities = (champion, patch) => {
     E: null,
     R: null,
   });
-  const [skillOrder, setSkillOrder] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,7 +18,6 @@ export const useChampionAbilities = (champion, patch) => {
           E: null,
           R: null,
         });
-        setSkillOrder([]);
         setLoading(false);
         return;
       }
@@ -50,14 +48,8 @@ export const useChampionAbilities = (champion, patch) => {
     fetchAbilities();
   }, [champion, patch]);
 
-  const updateSkillOrder = (newOrder) => {
-    setSkillOrder(newOrder);
-  };
-
   return {
     abilities,
-    skillOrder,
     loading,
-    updateSkillOrder,
   };
 };

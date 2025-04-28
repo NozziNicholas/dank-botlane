@@ -1,8 +1,11 @@
 import { GameImage } from "./ui/GameImage";
 
 export const ItemsSection = ({ champion, imageUrls }) => {
+  // Check if there are boots in the combo
+  const hasBoots = champion.boots || (imageUrls.items && imageUrls.items[5]);
+
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className={`grid ${hasBoots ? "grid-cols-3" : "grid-cols-2"} gap-4`}>
       {/* Starting Item */}
       <div>
         <div className="text-sm text-white opacity-75 mb-2">Starting</div>
@@ -30,16 +33,18 @@ export const ItemsSection = ({ champion, imageUrls }) => {
         </div>
       </div>
 
-      {/* Boots */}
-      <div>
-        <div className="text-sm text-white opacity-75 mb-2">Boots</div>
-        <GameImage
-          src={imageUrls.items?.[5]}
-          alt="Boots"
-          width={34}
-          height={34}
-        />
-      </div>
+      {/* Boots - Only show if there are boots */}
+      {hasBoots && (
+        <div>
+          <div className="text-sm text-white opacity-75 mb-2">Boots</div>
+          <GameImage
+            src={imageUrls.items?.[5]}
+            alt="Boots"
+            width={34}
+            height={34}
+          />
+        </div>
+      )}
     </div>
   );
 };

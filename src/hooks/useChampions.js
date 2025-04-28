@@ -6,7 +6,6 @@ export const useChampions = () => {
   const [support, setSupport] = useState(null);
   const [patch, setPatch] = useState(null);
   const [champions, setChampions] = useState(null);
-  const [championList, setChampionList] = useState(null);
 
   useEffect(() => {
     axios
@@ -24,7 +23,6 @@ export const useChampions = () => {
         )
         .then((res) => {
           setChampions(res.data.data);
-          setChampionList(Object.keys(res.data.data));
         });
     }
   }, [patch]);
@@ -133,7 +131,8 @@ export const useChampions = () => {
     support,
     patch,
     champions,
-    championList,
+    setCarry,
+    setSupport,
     fetchChampionData,
   };
 };

@@ -3,21 +3,18 @@ import useSWR from "swr";
 // Global fetcher function for images
 const imageFetcher = async (url) => {
   if (!url || url.includes("undefined") || url.includes("null")) {
-    console.warn("Invalid image URL detected:", url);
     return "";
   }
 
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch image: ${response.status} ${response.statusText}`
-      );
+      throw new Error(`Failed to fetch image: ${response.status}`);
     }
-    return url; // Return the URL directly since Next.js Image component handles the actual loading
+    return url;
   } catch (error) {
-    console.error("Error fetching image:", error, url);
-    return ""; // Return empty string on error
+    console.error("Error fetching image:", error);
+    return "";
   }
 };
 

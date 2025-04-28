@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import Image from "next/image";
 import useSWR from "swr";

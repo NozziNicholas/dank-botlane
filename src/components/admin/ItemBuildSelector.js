@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ItemSelector } from "./ItemSelector";
 import { Checkbox } from "@/components/ui/checkbox";
 

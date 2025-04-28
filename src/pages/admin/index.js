@@ -360,8 +360,13 @@ export default function Admin() {
       return false;
     }
 
-    // Check if boots are selected
-    if (!selectedItems.carry.boots || !selectedItems.support.boots) {
+    // Check if either boots or noBoots is selected for both champions
+    const carryHasBootsOrNoBoots =
+      selectedItems.carry.boots || selectedItems.carry.noBoots;
+    const supportHasBootsOrNoBoots =
+      selectedItems.support.boots || selectedItems.support.noBoots;
+
+    if (!carryHasBootsOrNoBoots || !supportHasBootsOrNoBoots) {
       return false;
     }
 
