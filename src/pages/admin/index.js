@@ -3,9 +3,11 @@ import { ChampionSelector } from "@/components/admin/ChampionSelector";
 import { SummonerSpellSelector } from "@/components/admin/SummonerSpellSelector";
 import SkillOrderSelector from "@/components/admin/SkillOrderSelector";
 import { RuneSelector } from "@/components/admin/RuneSelector";
+import { ItemBuildSelector } from "@/components/admin/ItemBuildSelector";
 import { useChampions } from "@/hooks/useChampions";
 import { useSummonerSpells } from "@/hooks/useSummonerSpells";
 import { useRuneData } from "@/hooks/useRuneData";
+import { useItemData } from "@/hooks/useItemData";
 
 const getRuneInfo = (runeData, selectedRunes) => {
   if (!runeData || !selectedRunes) return null;
@@ -74,6 +76,7 @@ export default function Admin() {
   const { champions, patch } = useChampions();
   const summonerSpells = useSummonerSpells(patch);
   const { runeData, isLoading: runesLoading } = useRuneData(patch);
+  const itemData = useItemData(patch);
 
   const [selectedChampions, setSelectedChampions] = useState({
     carry: null,
@@ -111,6 +114,18 @@ export default function Admin() {
         first: null,
         second: null,
       },
+    },
+  });
+  const [selectedItems, setSelectedItems] = useState({
+    carry: {
+      starter: null,
+      core: Array(5).fill(null),
+      boots: null,
+    },
+    support: {
+      starter: null,
+      core: Array(5).fill(null),
+      boots: null,
     },
   });
 
@@ -221,6 +236,74 @@ export default function Admin() {
     return disabledChampions;
   };
 
+  // Handle item selection
+  const handleItemsChange = (type, items) => {
+    setSelectedItems((prev) => {
+      const newItems = {
+        ...prev,
+        [type]: items,
+      };
+
+      // Log the current state after items change
+      console.log("Current State:", {
+        combo: {
+          carry_id: selectedChampions.carry?.id,
+          support_id: selectedChampions.support?.id,
+        },
+        build: [
+          {
+            champion_id: selectedChampions.carry?.id,
+            rune_page: selectedRunes.carry,
+            inventory: newItems.carry,
+            summoner_d: selectedSummonerSpells.carry.D?.id,
+            summoner_f: selectedSummonerSpells.carry.F?.id,
+            skill_order: skillOrders.carry?.join(","),
+          },
+          {
+            champion_id: selectedChampions.support?.id,
+            rune_page: selectedRunes.support,
+            inventory: newItems.support,
+            summoner_d: selectedSummonerSpells.support.D?.id,
+            summoner_f: selectedSummonerSpells.support.F?.id,
+            skill_order: skillOrders.support?.join(","),
+          },
+        ],
+        inventoryCarry: {
+          items: {
+            starter: newItems.carry?.starter?.id
+              ? [newItems.carry.starter.id]
+              : [],
+            boots: newItems.carry?.boots?.id ? [newItems.carry.boots.id] : [],
+            item1: { best: newItems.carry?.core[0]?.id || null, alt: [] },
+            item2: { best: newItems.carry?.core[1]?.id || null, alt: [] },
+            item3: { best: newItems.carry?.core[2]?.id || null, alt: [] },
+            item4: { best: newItems.carry?.core[3]?.id || null, alt: [] },
+            item5: { best: newItems.carry?.core[4]?.id || null, alt: [] },
+          },
+        },
+        inventorySupport: {
+          items: {
+            starter: newItems.support?.starter?.id
+              ? [newItems.support.starter.id]
+              : [],
+            boots: newItems.support?.boots?.id
+              ? [newItems.support.boots.id]
+              : [],
+            item1: { best: newItems.support?.core[0]?.id || null, alt: [] },
+            item2: { best: newItems.support?.core[1]?.id || null, alt: [] },
+            item3: { best: newItems.support?.core[2]?.id || null, alt: [] },
+            item4: { best: newItems.support?.core[3]?.id || null, alt: [] },
+            item5: { best: newItems.support?.core[4]?.id || null, alt: [] },
+          },
+        },
+        runePageCarry: selectedRunes.carry,
+        runePageSupport: selectedRunes.support,
+      });
+
+      return newItems;
+    });
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="max-w-4xl mx-auto">
@@ -298,6 +381,15 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
+
+                <div className="space-y-2 mt-8">
+                  <h3 className="text-lg font-semibold">Items</h3>
+                  <ItemBuildSelector
+                    items={itemData?.data}
+                    patch={patch}
+                    onItemsChange={(items) => handleItemsChange("carry", items)}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -375,6 +467,17 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
+
+                <div className="space-y-2 mt-8">
+                  <h3 className="text-lg font-semibold">Items</h3>
+                  <ItemBuildSelector
+                    items={itemData?.data}
+                    patch={patch}
+                    onItemsChange={(items) =>
+                      handleItemsChange("support", items)
+                    }
+                  />
+                </div>
               </>
             )}
           </div>
@@ -446,6 +549,30 @@ export default function Admin() {
                   {selectedSummonerSpells.carry.F && (
                     <p>F Spell: {selectedSummonerSpells.carry.F.name}</p>
                   )}
+                  {/* Items */}
+                  {selectedItems.carry && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">Items</h4>
+                      <div className="space-y-2">
+                        {selectedItems.carry.starter && (
+                          <p>Starter: {selectedItems.carry.starter.name}</p>
+                        )}
+                        {selectedItems.carry.boots && (
+                          <p>Boots: {selectedItems.carry.boots.name}</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {selectedItems.carry.core.map(
+                            (item, index) =>
+                              item && (
+                                <p key={index}>
+                                  Core {index + 1}: {item.name}
+                                </p>
+                              )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -508,6 +635,30 @@ export default function Admin() {
                   )}
                   {selectedSummonerSpells.support.F && (
                     <p>F Spell: {selectedSummonerSpells.support.F.name}</p>
+                  )}
+                  {/* Items */}
+                  {selectedItems.support && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-2">Items</h4>
+                      <div className="space-y-2">
+                        {selectedItems.support.starter && (
+                          <p>Starter: {selectedItems.support.starter.name}</p>
+                        )}
+                        {selectedItems.support.boots && (
+                          <p>Boots: {selectedItems.support.boots.name}</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {selectedItems.support.core.map(
+                            (item, index) =>
+                              item && (
+                                <p key={index}>
+                                  Core {index + 1}: {item.name}
+                                </p>
+                              )
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}

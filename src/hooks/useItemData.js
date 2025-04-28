@@ -18,9 +18,23 @@ export const useItemData = (patch) => {
           `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/item.json`
         );
         const data = await response.json();
-        // Cache the data
-        itemDataCache.set(patch, data);
-        setItemData(data);
+
+        // Process the data to ensure it's in the correct format
+        const processedData = {
+          ...data,
+          data: Object.entries(data.data).reduce((acc, [id, item]) => {
+            // Add the id to the item object for easier reference
+            acc[id] = {
+              ...item,
+              id: id,
+            };
+            return acc;
+          }, {}),
+        };
+
+        // Cache the processed data
+        itemDataCache.set(patch, processedData);
+        setItemData(processedData);
       } catch (error) {
         console.error("Error fetching item data:", error);
       }
