@@ -69,9 +69,10 @@ export function ItemSelector({
         if (slotType === "starter") {
           // Starting items are typically consumables or items with low cost
           return (
-            // item.tags.includes("GoldPer") ||
             !item.tags.includes("Consumable") &&
             !item.tags.includes("Trinket") &&
+            !item.tags.includes("Jungle") &&
+            item.gold.base !== 0 &&
             item.gold.total <= 500
           );
         } else if (slotType === "boots") {
@@ -81,7 +82,8 @@ export function ItemSelector({
           return (
             !item.tags.includes("Consumable") &&
             !item.tags.includes("GoldPer") &&
-            !item.tags.includes("Boots")
+            !item.tags.includes("Boots") &&
+            !item.tags.includes("Jungle")
           );
         }
       })
