@@ -12,7 +12,7 @@ export const useRuneData = (patch) => {
   );
 
   return {
-    runeData: data,
+    runeData: Array.isArray(data) ? data : [],
     isLoading,
     isError: !!error,
   };

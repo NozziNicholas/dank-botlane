@@ -8,9 +8,10 @@ import { useChampions } from "@/hooks/useChampions";
 import { useSummonerSpells } from "@/hooks/useSummonerSpells";
 import { useRuneData } from "@/hooks/useRuneData";
 import { useItemData } from "@/hooks/useItemData";
+import axios from "axios";
 
 const getRuneInfo = (runeData, selectedRunes) => {
-  if (!runeData || !selectedRunes) return null;
+  if (!runeData || !selectedRunes || !Array.isArray(runeData)) return null;
 
   const primaryPath = runeData.find((path) => {
     const keystone = path.slots[0].runes.find(
@@ -128,6 +129,9 @@ export default function Admin() {
       boots: null,
     },
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Handle champion selection
   const handleChampionSelect = (type, champion) => {
@@ -302,6 +306,168 @@ export default function Admin() {
 
       return newItems;
     });
+  };
+
+  // Check if all required fields are filled
+  const isFormValid = () => {
+    // Check champions
+    if (!selectedChampions.carry || !selectedChampions.support) {
+      return false;
+    }
+
+    // Check summoner spells
+    if (
+      !selectedSummonerSpells.carry.D ||
+      !selectedSummonerSpells.carry.F ||
+      !selectedSummonerSpells.support.D ||
+      !selectedSummonerSpells.support.F
+    ) {
+      return false;
+    }
+
+    // Check skill orders
+    if (!skillOrders.carry.length || !skillOrders.support.length) {
+      return false;
+    }
+
+    // Check runes
+    if (
+      !selectedRunes.carry.primary_rune.keystone ||
+      !selectedRunes.support.primary_rune.keystone
+    ) {
+      return false;
+    }
+
+    // Check items
+    if (!selectedItems.carry.starter || !selectedItems.support.starter) {
+      return false;
+    }
+
+    // Check if all core items are selected
+    const carryCoreItemsComplete = selectedItems.carry.core.every(
+      (item) => item !== null
+    );
+    const supportCoreItemsComplete = selectedItems.support.core.every(
+      (item) => item !== null
+    );
+
+    if (!carryCoreItemsComplete || !supportCoreItemsComplete) {
+      return false;
+    }
+
+    // Check if boots are selected
+    if (!selectedItems.carry.boots || !selectedItems.support.boots) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!isFormValid()) {
+      setSubmitError("Please fill in all required fields for both champions");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+
+    try {
+      const response = await axios.post("/api/addCombo", {
+        combo: {
+          carry_id: selectedChampions.carry.id,
+          support_id: selectedChampions.support.id,
+        },
+        build: [
+          {
+            champion_id: selectedChampions.carry.key,
+            rune_page: selectedRunes.carry,
+            inventory: selectedItems.carry,
+            summoner_d: selectedSummonerSpells.carry.D.id,
+            summoner_f: selectedSummonerSpells.carry.F.id,
+            skill_order: skillOrders.carry.join(","),
+          },
+          {
+            champion_id: selectedChampions.support.key,
+            rune_page: selectedRunes.support,
+            inventory: selectedItems.support,
+            summoner_d: selectedSummonerSpells.support.D.id,
+            summoner_f: selectedSummonerSpells.support.F.id,
+            skill_order: skillOrders.support.join(","),
+          },
+        ],
+        inventoryCarry: {
+          items: {
+            starter: selectedItems.carry.starter.id
+              ? [selectedItems.carry.starter.id]
+              : [],
+            boots: selectedItems.carry.boots.id
+              ? [selectedItems.carry.boots.id]
+              : [],
+            item1: { best: selectedItems.carry.core[0]?.id || null, alt: [] },
+            item2: { best: selectedItems.carry.core[1]?.id || null, alt: [] },
+            item3: { best: selectedItems.carry.core[2]?.id || null, alt: [] },
+            item4: { best: selectedItems.carry.core[3]?.id || null, alt: [] },
+            item5: { best: selectedItems.carry.core[4]?.id || null, alt: [] },
+          },
+        },
+        inventorySupport: {
+          items: {
+            starter: selectedItems.support.starter.id
+              ? [selectedItems.support.starter.id]
+              : [],
+            boots: selectedItems.support.boots.id
+              ? [selectedItems.support.boots.id]
+              : [],
+            item1: { best: selectedItems.support.core[0]?.id || null, alt: [] },
+            item2: { best: selectedItems.support.core[1]?.id || null, alt: [] },
+            item3: { best: selectedItems.support.core[2]?.id || null, alt: [] },
+            item4: { best: selectedItems.support.core[3]?.id || null, alt: [] },
+            item5: { best: selectedItems.support.core[4]?.id || null, alt: [] },
+          },
+        },
+        runePageCarry: selectedRunes.carry,
+        runePageSupport: selectedRunes.support,
+      });
+
+      setSubmitSuccess(true);
+      // Reset form
+      setSelectedChampions({ carry: null, support: null });
+      setSelectedSummonerSpells({
+        carry: { D: null, F: null },
+        support: { D: null, F: null },
+      });
+      setSkillOrders({ carry: [], support: [] });
+      setSelectedRunes({
+        carry: {
+          primary_rune: {
+            keystone: null,
+            first: null,
+            second: null,
+            third: null,
+          },
+          secondary_rune: { first: null, second: null },
+        },
+        support: {
+          primary_rune: {
+            keystone: null,
+            first: null,
+            second: null,
+            third: null,
+          },
+          secondary_rune: { first: null, second: null },
+        },
+      });
+      setSelectedItems({
+        carry: { starter: null, core: Array(5).fill(null), boots: null },
+        support: { starter: null, core: Array(5).fill(null), boots: null },
+      });
+    } catch (error) {
+      setSubmitError(error.response?.data?.message || "Failed to add combo");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -665,6 +831,39 @@ export default function Admin() {
             </div>
           ) : (
             <p className="text-gray-500">No champions selected yet</p>
+          )}
+        </div>
+
+        {/* Add submit button and status messages */}
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !isFormValid()}
+            className={`px-6 py-3 rounded-lg border-2 ${
+              isSubmitting
+                ? "bg-gray-400 border-gray-500 cursor-not-allowed"
+                : isFormValid()
+                ? "bg-blue-500 hover:bg-blue-600 border-blue-600 cursor-pointer shadow-md hover:shadow-lg"
+                : "bg-gray-300 border-gray-400 cursor-not-allowed"
+            } text-white font-semibold transition-all duration-200 text-lg`}
+          >
+            {isSubmitting ? "Adding Combo..." : "Add Combo"}
+          </button>
+
+          {!isFormValid() && (
+            <div className="text-amber-500 font-medium">
+              Please fill in all required fields for both champions
+            </div>
+          )}
+
+          {submitError && (
+            <div className="text-red-500 font-medium">{submitError}</div>
+          )}
+
+          {submitSuccess && (
+            <div className="text-green-500 font-medium">
+              Combo added successfully!
+            </div>
           )}
         </div>
       </div>

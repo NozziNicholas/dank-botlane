@@ -8,7 +8,7 @@ import { useItemData } from "@/hooks/useItemData";
 
 export default function Home() {
   const { carry, support, patch, fetchChampionData } = useChampions();
-  const runeData = useRuneData(patch);
+  const { runeData } = useRuneData(patch);
   const itemData = useItemData(patch);
 
   return (

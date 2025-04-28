@@ -147,7 +147,14 @@ export const RuneSelector = ({ runeData, onRuneChange }) => {
     [selectedRunes, updateRunes]
   );
 
-  if (!runeData) return null;
+  // Add null check for runeData after all hooks
+  if (!runeData || !Array.isArray(runeData)) {
+    return (
+      <div className="w-full p-4 text-center text-gray-500">
+        Loading rune data...
+      </div>
+    );
+  }
 
   const primaryPath = runeData.find((p) => p.id === primaryPathId);
   const secondaryPath = runeData.find((p) => p.id === secondaryPathId);
