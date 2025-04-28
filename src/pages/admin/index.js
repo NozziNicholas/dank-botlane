@@ -122,11 +122,13 @@ export default function Admin() {
       starter: null,
       core: Array(5).fill(null),
       boots: null,
+      noBoots: null,
     },
     support: {
       starter: null,
       core: Array(5).fill(null),
       boots: null,
+      noBoots: null,
     },
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -294,9 +296,6 @@ export default function Admin() {
             boots: newItems.support?.boots?.id
               ? [newItems.support.boots.id]
               : [],
-            noBoots: newItems.support?.noBoots?.id
-              ? [newItems.support.noBoots.id]
-              : [],
             item1: { best: newItems.support?.core[0]?.id || null, alt: [] },
             item2: { best: newItems.support?.core[1]?.id || null, alt: [] },
             item3: { best: newItems.support?.core[2]?.id || null, alt: [] },
@@ -386,33 +385,33 @@ export default function Admin() {
     try {
       const response = await axios.post("/api/addCombo", {
         combo: {
-          carry_id: selectedChampions.carry.id,
-          support_id: selectedChampions.support.id,
+          carry_id: selectedChampions.carry?.id,
+          support_id: selectedChampions.support?.id,
         },
         build: [
           {
-            champion_id: selectedChampions.carry.key,
+            champion_id: selectedChampions.carry?.key,
             rune_page: selectedRunes.carry,
             inventory: selectedItems.carry,
-            summoner_d: selectedSummonerSpells.carry.D.id,
-            summoner_f: selectedSummonerSpells.carry.F.id,
-            skill_order: skillOrders.carry.join(","),
+            summoner_d: selectedSummonerSpells.carry.D?.id,
+            summoner_f: selectedSummonerSpells.carry.F?.id,
+            skill_order: skillOrders.carry?.join(","),
           },
           {
-            champion_id: selectedChampions.support.key,
+            champion_id: selectedChampions.support?.key,
             rune_page: selectedRunes.support,
             inventory: selectedItems.support,
-            summoner_d: selectedSummonerSpells.support.D.id,
-            summoner_f: selectedSummonerSpells.support.F.id,
-            skill_order: skillOrders.support.join(","),
+            summoner_d: selectedSummonerSpells.support.D?.id,
+            summoner_f: selectedSummonerSpells.support.F?.id,
+            skill_order: skillOrders.support?.join(","),
           },
         ],
         inventoryCarry: {
           items: {
-            starter: selectedItems.carry.starter.id
+            starter: selectedItems.carry.starter?.id
               ? [selectedItems.carry.starter.id]
               : [],
-            boots: selectedItems.carry.boots.id
+            boots: selectedItems.carry.boots?.id
               ? [selectedItems.carry.boots.id]
               : [],
             item1: { best: selectedItems.carry.core[0]?.id || null, alt: [] },
@@ -425,10 +424,10 @@ export default function Admin() {
         },
         inventorySupport: {
           items: {
-            starter: selectedItems.support.starter.id
+            starter: selectedItems.support.starter?.id
               ? [selectedItems.support.starter.id]
               : [],
-            boots: selectedItems.support.boots.id
+            boots: selectedItems.support.boots?.id
               ? [selectedItems.support.boots.id]
               : [],
             item1: { best: selectedItems.support.core[0]?.id || null, alt: [] },
@@ -443,40 +442,57 @@ export default function Admin() {
         runePageSupport: selectedRunes.support,
       });
 
-      setSubmitSuccess(true);
-      // Reset form
-      setSelectedChampions({ carry: null, support: null });
-      setSelectedSummonerSpells({
-        carry: { D: null, F: null },
-        support: { D: null, F: null },
-      });
-      setSkillOrders({ carry: [], support: [] });
-      setSelectedRunes({
-        carry: {
-          primary_rune: {
-            keystone: null,
-            first: null,
-            second: null,
-            third: null,
+      // Use the response to show success message with data from the server
+      if (response.data && response.data.success) {
+        setSubmitSuccess(true);
+        // Reset form
+        setSelectedChampions({ carry: null, support: null });
+        setSelectedSummonerSpells({
+          carry: { D: null, F: null },
+          support: { D: null, F: null },
+        });
+        setSkillOrders({ carry: [], support: [] });
+        setSelectedRunes({
+          carry: {
+            primary_rune: {
+              keystone: null,
+              first: null,
+              second: null,
+              third: null,
+            },
+            secondary_rune: { first: null, second: null },
           },
-          secondary_rune: { first: null, second: null },
-        },
-        support: {
-          primary_rune: {
-            keystone: null,
-            first: null,
-            second: null,
-            third: null,
+          support: {
+            primary_rune: {
+              keystone: null,
+              first: null,
+              second: null,
+              third: null,
+            },
+            secondary_rune: { first: null, second: null },
           },
-          secondary_rune: { first: null, second: null },
-        },
-      });
-      setSelectedItems({
-        carry: { starter: null, core: Array(5).fill(null), boots: null },
-        support: { starter: null, core: Array(5).fill(null), boots: null },
-      });
+        });
+        setSelectedItems({
+          carry: {
+            starter: null,
+            core: Array(5).fill(null),
+            boots: null,
+            noBoots: null,
+          },
+          support: {
+            starter: null,
+            core: Array(5).fill(null),
+            boots: null,
+            noBoots: null,
+          },
+        });
+      } else {
+        setSubmitError(response.data?.message || "Failed to add combo");
+      }
     } catch (error) {
-      setSubmitError(error.response?.data?.message || "Failed to add combo");
+      setSubmitError(
+        error.response?.data?.message || "Failed to add combo uwu"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -826,9 +842,14 @@ export default function Admin() {
                         {selectedItems.support.starter && (
                           <p>Starter: {selectedItems.support.starter.name}</p>
                         )}
-                        {selectedItems.support.boots && (
+                        {selectedItems.support.boots ? (
                           <p>Boots: {selectedItems.support.boots.name}</p>
-                        )}
+                        ) : selectedItems.support.noBoots ? (
+                          <p>
+                            Alternative Item:{" "}
+                            {selectedItems.support.noBoots.name}
+                          </p>
+                        ) : null}
                         <div className="flex flex-wrap gap-2">
                           {selectedItems.support.core.map(
                             (item, index) =>

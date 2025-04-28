@@ -39,7 +39,9 @@ export function ItemBuildSelector({ items, patch, onItemsChange }) {
       }
     } else if (slotType === "noBoots") {
       newSelectedItems.noBoots = item;
-      if (!item) {
+      if (item) {
+        setShowNoBoots(true);
+      } else {
         setShowNoBoots(false);
       }
     } else if (slotType === "core" && index !== null) {
@@ -56,7 +58,19 @@ export function ItemBuildSelector({ items, patch, onItemsChange }) {
   const handleNoBootsChange = (checked) => {
     setShowNoBoots(checked);
     if (checked) {
-      const newSelectedItems = { ...selectedItems, boots: null };
+      // When no boots is checked, we don't need to set a placeholder item
+      // Just set boots to null and let the user select an alternative item
+      const newSelectedItems = {
+        ...selectedItems,
+        boots: null,
+      };
+      setSelectedItems(newSelectedItems);
+      onItemsChange?.(newSelectedItems);
+    } else {
+      const newSelectedItems = {
+        ...selectedItems,
+        noBoots: null,
+      };
       setSelectedItems(newSelectedItems);
       onItemsChange?.(newSelectedItems);
     }
@@ -74,6 +88,36 @@ export function ItemBuildSelector({ items, patch, onItemsChange }) {
           disabledItems={getAllSelectedItemIds()}
           slotType="starter"
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-end justify-center gap-4">
+          <div className="flex-1">
+            <label className="text-sm font-medium">Boots</label>
+            <ItemSelector
+              items={items}
+              patch={patch}
+              onSelect={(item) => handleItemSelect(item, "boots")}
+              label="Select boots..."
+              disabledItems={getAllSelectedItemIds()}
+              slotType="boots"
+              disabled={showNoBoots}
+            />
+          </div>
+          <div className="flex items-center space-x-2 pb-3">
+            <Checkbox
+              id="noBoots"
+              checked={showNoBoots}
+              onCheckedChange={handleNoBootsChange}
+            />
+            <label
+              htmlFor="noBoots"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              No Boots
+            </label>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -100,36 +144,6 @@ export function ItemBuildSelector({ items, patch, onItemsChange }) {
               slotType="core"
             />
           )}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <label className="text-sm font-medium">Boots</label>
-            <ItemSelector
-              items={items}
-              patch={patch}
-              onSelect={(item) => handleItemSelect(item, "boots")}
-              label="Select boots..."
-              disabledItems={getAllSelectedItemIds()}
-              slotType="boots"
-              disabled={showNoBoots}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="noBoots"
-              checked={showNoBoots}
-              onCheckedChange={handleNoBootsChange}
-            />
-            <label
-              htmlFor="noBoots"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              No Boots
-            </label>
-          </div>
         </div>
       </div>
     </div>

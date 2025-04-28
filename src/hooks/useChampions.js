@@ -66,6 +66,7 @@ export const useChampions = () => {
           carryItems.item3.best,
           carryItems.item4.best,
           carryItems.item5.best,
+          carryItems.item6?.best,
         ],
         boots: carryItems.boots[0],
         runes: {
@@ -104,6 +105,7 @@ export const useChampions = () => {
           supportItems.item3.best,
           supportItems.item4.best,
           supportItems.item5.best,
+          supportItems.item6?.best,
         ],
         boots: supportItems.boots[0],
         runes: {
