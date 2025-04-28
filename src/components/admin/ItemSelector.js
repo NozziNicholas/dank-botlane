@@ -59,17 +59,21 @@ export function ItemSelector({
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter out items based on slot type
+  // Filter out items based on slot type and keep only unique names
   const filteredItemsByType = items
     ? Object.entries(items)
-        .filter(([itemKey, item]) => {
-          // First filter for Map 11 (Summoner's Rift) items and purchasable items
-          if (!item.maps || !item.maps["11"] || !item.gold.purchasable) {
-            return false;
-          }
+        // First convert to array of [key, item] pairs
+        .filter(([_, item]) => {
+          // Check if item builds from 3867 first
+          const buildsFrom3867 = item.from && item.from.includes("3867");
 
-          // Exclude item with key 323070
-          if (itemKey === "323070") {
+          // First filter for Map 11 (Summoner's Rift) items
+          // Allow items that build from 3867 even if not purchasable
+          if (
+            !item.maps ||
+            !item.maps["11"] ||
+            (!buildsFrom3867 && !item.gold.purchasable)
+          ) {
             return false;
           }
 
@@ -91,16 +95,29 @@ export function ItemSelector({
             );
           } else {
             // For core items, exclude consumables, gold items, and boots
+            const hasValidGold = item.gold.total > 500;
+
             return (
               !item.tags.includes("Consumable") &&
-              !item.tags.includes("GoldPer") &&
               !item.tags.includes("Boots") &&
               !item.tags.includes("Jungle") &&
-              item.gold.total > 500 &&
+              // Include items that either build from 3867 OR have valid gold
+              (buildsFrom3867 || hasValidGold) &&
+              // Only include final items (items that don't build into anything else)
               (!item.into || item.into.length === 0)
             );
           }
         })
+        // Group items by name and take the first one from each group
+        .reduce((acc, [key, item]) => {
+          if (
+            !acc.some(([_, existingItem]) => existingItem.name === item.name)
+          ) {
+            acc.push([key, item]);
+          }
+          return acc;
+        }, [])
+        // Map back to just the items
         .map(([_, item]) => item)
     : [];
 
