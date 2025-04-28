@@ -4,8 +4,10 @@ import { useState, useEffect, useMemo } from "react";
 import { ChampionHeader } from "./ChampionHeader";
 import { RunesSection } from "./RunesSection";
 import { ItemsSection } from "./ItemsSection";
+import { useTheme } from "./ThemeProvider";
 
 export const ChampionCard = ({ champion, patch, runeData, itemData, role }) => {
+  const { theme } = useTheme();
   // Helper function to find rune by ID
   const findRuneById = (runeId, runeData) => {
     if (!runeData || !Array.isArray(runeData)) return null;
@@ -141,9 +143,19 @@ export const ChampionCard = ({ champion, patch, runeData, itemData, role }) => {
   if (!champion) return null;
 
   return (
-    <Card className="w-full bg-lol-card-bg border border-lol-card-border shadow-lg overflow-hidden md:h-3/4">
+    <Card
+      className={`w-full ${
+        theme === "dark"
+          ? "bg-dank-secondary border-dank-details"
+          : "bg-[#d4ccb1] border-dank-details/70"
+      } shadow-lg overflow-hidden md:h-3/4`}
+    >
       <CardHeader className="pb-1 pt-2">
-        <CardTitle className="text-center text-xl text-white font-bold">
+        <CardTitle
+          className={`text-center text-xl ${
+            theme === "dark" ? "text-dank-buttons" : "text-dank-primary"
+          } font-bold`}
+        >
           {champion.name} ({role})
         </CardTitle>
       </CardHeader>
