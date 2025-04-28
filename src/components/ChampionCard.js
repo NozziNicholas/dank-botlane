@@ -5,7 +5,7 @@ import { ChampionHeader } from "./ChampionHeader";
 import { RunesSection } from "./RunesSection";
 import { ItemsSection } from "./ItemsSection";
 
-export const ChampionCard = ({ champion, patch, runeData, itemData }) => {
+export const ChampionCard = ({ champion, patch, runeData, itemData, role }) => {
   // Helper function to find rune by ID
   const findRuneById = (runeId, runeData) => {
     if (!runeData || !Array.isArray(runeData)) return null;
@@ -141,13 +141,13 @@ export const ChampionCard = ({ champion, patch, runeData, itemData }) => {
   if (!champion) return null;
 
   return (
-    <Card className="w-full md:w-2/5 h-4/5 bg-lol-card-bg border border-lol-card-border shadow-lg mx-auto">
-      <CardHeader className="pb-0 pt-2">
-        <CardTitle className="text-center text-xl text-white">
-          {champion.name}
+    <Card className="w-full bg-lol-card-bg border border-lol-card-border shadow-lg overflow-hidden md:h-3/4">
+      <CardHeader className="pb-1 pt-2">
+        <CardTitle className="text-center text-xl text-white font-bold">
+          {champion.name} ({role})
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-5">
+      <CardContent className="flex flex-col gap-2 px-4 pt-3 pb-0">
         <ChampionHeader champion={champion} imageUrls={componentImageUrls} />
         <RunesSection runes={champion.runes} imageUrls={componentImageUrls} />
         <ItemsSection champion={champion} imageUrls={componentImageUrls} />
