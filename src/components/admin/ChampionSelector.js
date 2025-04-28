@@ -76,8 +76,7 @@ export function ChampionSelector({
   };
 
   // Handle clearing selection
-  const handleClear = (e) => {
-    e.stopPropagation();
+  const handleClear = () => {
     setSelectedChampion(null);
     onSelect(null);
     setOpen(false);
@@ -106,15 +105,24 @@ export function ChampionSelector({
           {selectedChampion ? (
             <>
               {/* Clear button inside the selector on the left */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute cursor-pointer left-1 h-5 w-5 p-0 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-                onClick={handleClear}
+              <div
+                role="button"
+                tabIndex={0}
+                className="absolute cursor-pointer left-1 h-5 w-5 p-0 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClear();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleClear();
+                  }
+                }}
                 aria-label="Clear selection"
               >
                 <X className="h-3 w-3" />
-              </Button>
+              </div>
 
               <div className="flex items-center gap-2 pl-6">
                 <div className="relative h-6 w-6 overflow-hidden rounded-full">

@@ -2,12 +2,79 @@ import { useState } from "react";
 import { ChampionSelector } from "@/components/admin/ChampionSelector";
 import { SummonerSpellSelector } from "@/components/admin/SummonerSpellSelector";
 import SkillOrderSelector from "@/components/admin/SkillOrderSelector";
+import { RuneSelector } from "@/components/admin/RuneSelector";
 import { useChampions } from "@/hooks/useChampions";
 import { useSummonerSpells } from "@/hooks/useSummonerSpells";
+import { useRuneData } from "@/hooks/useRuneData";
+
+const getRuneInfo = (runeData, selectedRunes) => {
+  if (!runeData || !selectedRunes) return null;
+
+  const primaryPath = runeData.find((path) => {
+    const keystone = path.slots[0].runes.find(
+      (rune) => rune.id === selectedRunes.primary_rune.keystone
+    );
+    return !!keystone;
+  });
+
+  const secondaryPath = runeData.find((path) => {
+    const hasSecondaryRune = path.slots
+      .slice(1)
+      .some((slot) =>
+        slot.runes.some(
+          (rune) =>
+            rune.id === selectedRunes.secondary_rune.first ||
+            rune.id === selectedRunes.secondary_rune.second
+        )
+      );
+    return hasSecondaryRune;
+  });
+
+  // Get names for primary runes
+  const keystoneRune = primaryPath?.slots[0].runes.find(
+    (rune) => rune.id === selectedRunes.primary_rune.keystone
+  );
+  const firstRune = primaryPath?.slots[1].runes.find(
+    (rune) => rune.id === selectedRunes.primary_rune.first
+  );
+  const secondRune = primaryPath?.slots[2].runes.find(
+    (rune) => rune.id === selectedRunes.primary_rune.second
+  );
+  const thirdRune = primaryPath?.slots[3].runes.find(
+    (rune) => rune.id === selectedRunes.primary_rune.third
+  );
+
+  // Get names for secondary runes
+  const firstSecondaryRune = secondaryPath?.slots
+    .slice(1)
+    .flatMap((slot) => slot.runes)
+    .find((rune) => rune.id === selectedRunes.secondary_rune.first);
+  const secondSecondaryRune = secondaryPath?.slots
+    .slice(1)
+    .flatMap((slot) => slot.runes)
+    .find((rune) => rune.id === selectedRunes.secondary_rune.second);
+
+  return {
+    primaryPath: primaryPath?.name,
+    secondaryPath: secondaryPath?.name,
+    keystone: keystoneRune?.name,
+    primaryRunes: {
+      first: firstRune?.name,
+      second: secondRune?.name,
+      third: thirdRune?.name,
+    },
+    secondaryRunes: {
+      first: firstSecondaryRune?.name,
+      second: secondSecondaryRune?.name,
+    },
+  };
+};
 
 export default function Admin() {
   const { champions, patch } = useChampions();
   const summonerSpells = useSummonerSpells(patch);
+  const { runeData, isLoading: runesLoading } = useRuneData(patch);
+
   const [selectedChampions, setSelectedChampions] = useState({
     carry: null,
     support: null,
@@ -19,6 +86,32 @@ export default function Admin() {
   const [skillOrders, setSkillOrders] = useState({
     carry: [],
     support: [],
+  });
+  const [selectedRunes, setSelectedRunes] = useState({
+    carry: {
+      primary_rune: {
+        keystone: null,
+        first: null,
+        second: null,
+        third: null,
+      },
+      secondary_rune: {
+        first: null,
+        second: null,
+      },
+    },
+    support: {
+      primary_rune: {
+        keystone: null,
+        first: null,
+        second: null,
+        third: null,
+      },
+      secondary_rune: {
+        first: null,
+        second: null,
+      },
+    },
   });
 
   // Handle champion selection
@@ -39,7 +132,7 @@ export default function Admin() {
       [type]: champion,
     }));
 
-    // Clear the summoner spells and skill order for this champion
+    // Clear the summoner spells, skill order, and runes for this champion
     setSelectedSummonerSpells((prev) => ({
       ...prev,
       [type]: { D: null, F: null },
@@ -47,6 +140,29 @@ export default function Admin() {
     setSkillOrders((prev) => ({
       ...prev,
       [type]: [],
+    }));
+    setSelectedRunes((prev) => ({
+      ...prev,
+      [type]: {
+        primary_rune: {
+          keystone: null,
+          first: null,
+          second: null,
+          third: null,
+        },
+        secondary_rune: {
+          first: null,
+          second: null,
+        },
+      },
+    }));
+  };
+
+  // Handle rune selection
+  const handleRuneChange = (type, runes) => {
+    setSelectedRunes((prev) => ({
+      ...prev,
+      [type]: runes,
     }));
   };
 
@@ -124,6 +240,17 @@ export default function Admin() {
 
             {selectedChampions.carry && (
               <>
+                {/* Runes */}
+                {!runesLoading && runeData && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Runes</h4>
+                    <RuneSelector
+                      runeData={runeData}
+                      onRuneChange={(runes) => handleRuneChange("carry", runes)}
+                    />
+                  </div>
+                )}
+
                 {/* Skill Order Selector */}
                 <div className="mt-4">
                   <SkillOrderSelector
@@ -188,6 +315,19 @@ export default function Admin() {
 
             {selectedChampions.support && (
               <>
+                {/* Runes */}
+                {!runesLoading && runeData && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Runes</h4>
+                    <RuneSelector
+                      runeData={runeData}
+                      onRuneChange={(runes) =>
+                        handleRuneChange("support", runes)
+                      }
+                    />
+                  </div>
+                )}
+
                 {/* Skill Order Selector */}
                 <div className="mt-4">
                   <SkillOrderSelector
@@ -252,16 +392,56 @@ export default function Admin() {
                     Carry: {selectedChampions.carry.name}
                   </h3>
                   <p>ID: {selectedChampions.carry.id}</p>
+                  {/* Runes */}
+                  {runeData && selectedRunes.carry && (
+                    <div className="mt-2">
+                      {(() => {
+                        const runeInfo = getRuneInfo(
+                          runeData,
+                          selectedRunes.carry
+                        );
+                        return runeInfo ? (
+                          <>
+                            <p className="text-sm">
+                              <span className="text-yellow-500">
+                                {runeInfo.primaryPath}
+                              </span>
+                              {" + "}
+                              <span className="text-yellow-500">
+                                {runeInfo.secondaryPath}
+                              </span>
+                            </p>
+                            <div className="text-sm text-gray-400 mt-1">
+                              <p>Keystone: {runeInfo.keystone}</p>
+                              <p>
+                                Primary Runes: {runeInfo.primaryRunes.first} •{" "}
+                                {runeInfo.primaryRunes.second} •{" "}
+                                {runeInfo.primaryRunes.third}
+                              </p>
+                              <p>
+                                Secondary Runes: {runeInfo.secondaryRunes.first}{" "}
+                                • {runeInfo.secondaryRunes.second}
+                              </p>
+                            </div>
+                          </>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                  {/* Skill Order */}
                   {skillOrders.carry && skillOrders.carry.length > 0 && (
-                    <p>
+                    <p className="mt-2">
                       Skill Order:{" "}
                       {Array.isArray(skillOrders.carry)
                         ? skillOrders.carry.join(" > ")
                         : skillOrders.carry}
                     </p>
                   )}
+                  {/* Summoner Spells */}
                   {selectedSummonerSpells.carry.D && (
-                    <p>D Spell: {selectedSummonerSpells.carry.D.name}</p>
+                    <p className="mt-2">
+                      D Spell: {selectedSummonerSpells.carry.D.name}
+                    </p>
                   )}
                   {selectedSummonerSpells.carry.F && (
                     <p>F Spell: {selectedSummonerSpells.carry.F.name}</p>
@@ -275,16 +455,56 @@ export default function Admin() {
                     Support: {selectedChampions.support.name}
                   </h3>
                   <p>ID: {selectedChampions.support.id}</p>
+                  {/* Runes */}
+                  {runeData && selectedRunes.support && (
+                    <div className="mt-2">
+                      {(() => {
+                        const runeInfo = getRuneInfo(
+                          runeData,
+                          selectedRunes.support
+                        );
+                        return runeInfo ? (
+                          <>
+                            <p className="text-sm">
+                              <span className="text-yellow-500">
+                                {runeInfo.primaryPath}
+                              </span>
+                              {" + "}
+                              <span className="text-yellow-500">
+                                {runeInfo.secondaryPath}
+                              </span>
+                            </p>
+                            <div className="text-sm text-gray-400 mt-1">
+                              <p>Keystone: {runeInfo.keystone}</p>
+                              <p>
+                                Primary Runes: {runeInfo.primaryRunes.first} •{" "}
+                                {runeInfo.primaryRunes.second} •{" "}
+                                {runeInfo.primaryRunes.third}
+                              </p>
+                              <p>
+                                Secondary Runes: {runeInfo.secondaryRunes.first}{" "}
+                                • {runeInfo.secondaryRunes.second}
+                              </p>
+                            </div>
+                          </>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                  {/* Skill Order */}
                   {skillOrders.support && skillOrders.support.length > 0 && (
-                    <p>
+                    <p className="mt-2">
                       Skill Order:{" "}
                       {Array.isArray(skillOrders.support)
                         ? skillOrders.support.join(" > ")
                         : skillOrders.support}
                     </p>
                   )}
+                  {/* Summoner Spells */}
                   {selectedSummonerSpells.support.D && (
-                    <p>D Spell: {selectedSummonerSpells.support.D.name}</p>
+                    <p className="mt-2">
+                      D Spell: {selectedSummonerSpells.support.D.name}
+                    </p>
                   )}
                   {selectedSummonerSpells.support.F && (
                     <p>F Spell: {selectedSummonerSpells.support.F.name}</p>

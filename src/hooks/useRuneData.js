@@ -1,35 +1,19 @@
-import { useState, useEffect } from "react";
+import useSWR from "swr";
 
-const runeDataCache = new Map();
+const fetcher = (url) => fetch(url).then((res) => res.json());
 
 export const useRuneData = (patch) => {
-  const [runeData, setRuneData] = useState(null);
+  const shouldFetch = !!patch;
+  const { data, error, isLoading } = useSWR(
+    shouldFetch
+      ? `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/runesReforged.json`
+      : null,
+    fetcher
+  );
 
-  useEffect(() => {
-    const fetchRuneData = async () => {
-      // Check if we already have the data for this patch
-      if (runeDataCache.has(patch)) {
-        setRuneData(runeDataCache.get(patch));
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/runesReforged.json`
-        );
-        const data = await response.json();
-        // Cache the data
-        runeDataCache.set(patch, data);
-        setRuneData(data);
-      } catch (error) {
-        console.error("Error fetching rune data:", error);
-      }
-    };
-
-    if (patch) {
-      fetchRuneData();
-    }
-  }, [patch]);
-
-  return runeData;
+  return {
+    runeData: data,
+    isLoading,
+    isError: !!error,
+  };
 };
